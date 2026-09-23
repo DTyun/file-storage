@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>访问受限</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:#f0f2f5; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+.box { background:#fff; padding:40px; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,0.08); width:400px; text-align:center; }
+.box .icon { font-size:48px; margin-bottom:16px; }
+.box h1 { font-size:20px; color:#e74c3c; margin-bottom:12px; }
+.box p { font-size:14px; color:#666; line-height:1.8; }
+.box .hint { font-size:12px; color:#999; margin-top:20px; }
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="icon">🔒</div>
+  <h1>访问已被限制</h1>
+  <p>该 IP 今日登录失败次数过多，已被临时封禁。<br>请明日再试，或联系管理员。</p>
+  <div class="hint">封禁将在次日 00:00 自动解除</div>
+</div>
+</body>
+</html>

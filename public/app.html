@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>团队云盘</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background:#f5f6fa; color:#333; min-height:100vh; }
+.header { background:#fff; border-bottom:1px solid #e8e8e8; padding:12px 24px; display:flex; align-items:center; justify-content:space-between; position:sticky; top:0; z-index:100; }
+.header h1 { font-size:18px; color:#1a1a1a; }
+.header h1 span { margin-right:8px; }
+.header-right { display:flex; align-items:center; gap:12px; }
+.header-search { display:flex; align-items:center; gap:6px; }
+.header-search input { width:170px; min-width:0; padding:7px 10px; border:1px solid #d8dce5; border-radius:7px; font:inherit; font-size:13px; }
+.header-search button { padding:7px 10px; border:1px solid #d8dce5; border-radius:7px; background:#fff; color:#4f6ef7; font-size:12px; cursor:pointer; white-space:nowrap; }
+.header-search button:hover { border-color:#8198ef; background:#f6f8ff; }
+.btn-logout { padding:6px 16px; border:1px solid #ddd; border-radius:6px; background:#fff; cursor:pointer; font-size:13px; color:#666; }
+.btn-logout:hover { background:#f5f5f5; }
+.scope-bar { display:flex; align-items:center; gap:8px; margin-bottom:14px; }
+.scope-btn,.btn-manage { padding:8px 14px; border:1px solid #e0e3e8; border-radius:7px; background:#fff; color:#555; cursor:pointer; font-size:13px; }
+.scope-btn.active { color:#3158db; border-color:#8198ef; background:#f4f6ff; font-weight:600; }
+.scope-btn:hover,.btn-manage:hover { border-color:#8198ef; }
+.scope-help { color:#999; font-size:12px; }
+.quota-usage { margin-left:auto; color:#687184; font-size:12px; }
+.quota-usage.warn { color:#ad6800; font-weight:600; }
+.quota-usage.full { color:#cf1322; font-weight:600; }
+.member-list { width:min(560px,90vw); }
+.member-row { display:flex; align-items:center; justify-content:space-between; gap:12px; padding:10px 0; border-bottom:1px solid #eee; font-size:13px; }
+.member-row { flex-wrap:wrap; }
+.member-row:last-child { border-bottom:0; }
+.member-status { color:#888; font-size:12px; }
+.member-status.off { color:#d46b08; }
+.member-quota { display:block; margin-top:3px; color:#8a8f99; font-size:12px; }
+.member-actions { display:flex; gap:6px; }
+.member-actions { flex-wrap:wrap; }
+.member-form { display:grid; grid-template-columns:1fr 1fr auto; gap:8px; margin-bottom:14px; }
+.member-form input { min-width:0; padding:8px 10px; border:1px solid #ddd; border-radius:6px; }
+.member-form button { padding:8px 12px; border:0; border-radius:6px; background:#4f6ef7; color:#fff; cursor:pointer; }
+.created-credentials { padding:12px; margin:0 0 14px; border:1px solid #c9d5ff; border-radius:8px; background:#f7f8ff; }
+.created-credentials[hidden] { display:none; }
+.credential-line { display:flex; align-items:center; gap:8px; margin-top:8px; font-size:13px; }
+.credential-label,.credential-line label { width:46px; color:#666; }
+.credential-line code,.credential-line input { flex:1; min-width:0; padding:7px 8px; border:1px solid #e0e3e8; border-radius:5px; background:#fff; }
+.credential-line button,.copy-all-button { padding:7px 10px; border:1px solid #d7dce8; border-radius:5px; background:#fff; color:#3158db; cursor:pointer; white-space:nowrap; }
+.copy-all-button { margin-top:10px; }
+.password-form-group { margin-bottom:14px; }
+.password-form-group label { display:block; margin-bottom:6px; color:#555; font-size:13px; }
+.password-form-group input { width:100%; padding:9px 10px; border:1px solid #ddd; border-radius:6px; font:inherit; }
+button:focus-visible,input:focus-visible,textarea:focus-visible { outline:2px solid #3158db; outline-offset:2px; }
+.container { max-width:960px; margin:0 auto; padding:20px 16px; }
+.upload-area { background:#fff; border:2px dashed #d0d5dd; border-radius:12px; padding:24px; text-align:center; cursor:pointer; transition:all .2s; margin-bottom:20px; }
+.upload-area:hover, .upload-area.dragover { border-color:#4f6ef7; background:#f8f9ff; }
+.upload-area .icon { font-size:36px; margin-bottom:8px; }
+.upload-area .text { font-size:14px; color:#888; }
+.upload-area .hint { font-size:12px; color:#bbb; margin-top:4px; }
+.file-list { background:#fff; border-radius:10px; box-shadow:0 1px 4px rgba(0,0,0,0.04); overflow:hidden; }
+.file-item { display:grid; grid-template-columns:42px 34px minmax(0,1fr) 80px 140px 44px 236px; column-gap:12px; align-items:center; padding:12px 16px; border-bottom:1px solid #f0f0f0; transition:background .15s; }
+.file-item:last-child { border-bottom:none; }
+.file-item:hover { background:#fafafa; }
+.file-icon { font-size:22px; justify-self:center; }
+.file-info { flex:1; min-width:0; }
+.file-name { font-size:14px; font-weight:500; color:#1a1a1a; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.file-meta { font-size:12px; color:#999; margin-top:2px; }
+.file-actions { display:flex; flex-wrap:nowrap; justify-content:flex-end; gap:6px; min-width:0; }
+.favorite-button { width:32px; height:30px; padding:0; border:1px solid #e5e7eb; border-radius:6px; background:#fff; color:#bb4961; font-size:21px; line-height:1; cursor:pointer; }
+.favorite-button:hover { background:#fff5f7; border-color:#e7a5b3; }
+.favorite-button.active { color:#d9365b; border-color:#f1b2c0; background:#fff3f6; }
+.btn-action { padding:5px 12px; border:none; border-radius:6px; cursor:pointer; font-size:12px; transition:all .15s; }
+.btn-download { background:#e8f4ff; color:#1677ff; }
+.btn-download:hover { background:#d0ebff; }
+.btn-preview { background:#f0f5ff; color:#4f6ef7; }
+.btn-preview:hover { background:#e0eaff; }
+.btn-delete { background:#fff1f0; color:#ff4d4f; }
+.btn-delete:hover { background:#ffccc7; }
+.btn-share { background:#edf7f0; color:#287a44; }
+.btn-share:hover { background:#dff0e4; }
+.file-actions .btn-action { padding:5px 9px; }
+/* 批量选择 */
+.file-checkbox { margin:0; width:16px; height:16px; cursor:pointer; }
+.batch-bar { display:none; align-items:center; gap:10px; padding:8px 16px; background:#f0f5ff; border-radius:8px; margin-bottom:12px; font-size:13px; }
+.batch-bar.active { display:flex; }
+.batch-bar .count { color:#4f6ef7; font-weight:500; }
+.btn-batch { padding:6px 16px; border:none; border-radius:6px; cursor:pointer; font-size:12px; transition:all .15s; }
+.btn-select-all { background:#f0f5ff; color:#4f6ef7; }
+.btn-select-all:hover { background:#e0eaff; }
+.btn-batch-delete { background:#fff1f0; color:#ff4d4f; }
+.btn-batch-delete:hover { background:#ffccc7; }
+.btn-batch-download { background:#e8f4ff; color:#1677ff; }
+.btn-batch-download:hover { background:#d0ebff; }
+.file-item.selected { background:#f0f5ff; }
+/* 文件列表表头 */
+.file-header { display:grid; grid-template-columns:42px 34px minmax(0,1fr) 80px 140px 44px 236px; column-gap:12px; align-items:center; padding:10px 16px; background:#f7f8fb; border-bottom:1px solid #e8e8e8; font-size:12px; color:#687184; font-weight:600; }
+.file-header .col-check,.file-item .col-check { display:flex; align-items:center; justify-content:center; min-width:0; }
+.file-header .col-name { min-width:0; }
+.file-header .col-size,.file-item .col-size { text-align:right; }
+.file-header .col-date,.file-item .col-date { text-align:right; }
+.file-header .col-actions { text-align:right; }
+.file-header .col-note,.file-item .col-note { text-align:center; }
+.file-item .col-note { font-size:14px; cursor:pointer; }
+.file-item .note-active { opacity:1; }
+.file-header .sortable { cursor:pointer; user-select:none; white-space:nowrap; }
+.file-header .sortable:hover { color:#4f6ef7; }
+.file-header .sort-arrow { font-size:10px; margin-left:3px; }
+.filename-tooltip { position:fixed; z-index:2100; width:max-content; max-width:min(420px,calc(100vw - 24px)); padding:8px 10px; border:1px solid #384252; border-radius:7px; background:#202938; box-shadow:0 5px 18px #14203338; color:#fff; font-size:12px; font-weight:400; line-height:1.5; overflow-wrap:anywhere; white-space:normal; pointer-events:none; }
+.filename-tooltip[hidden] { display:none; }
+@media (max-width:640px) {
+  .file-header,.file-item { grid-template-columns:34px 28px minmax(0,1fr) 54px 36px; column-gap:8px; }
+  .file-header .col-date,.file-item .col-date,.file-header .col-actions { display:none; }
+  .file-item .file-actions { grid-column:1 / -1; justify-content:flex-end; margin-top:9px; }
+}
+.empty-state { text-align:center; padding:60px 20px; color:#bbb; }
+.empty-state .icon { font-size:48px; margin-bottom:12px; }
+.empty-state .text { font-size:14px; }
+/* 分页 */
+.pagination { display:flex; align-items:center; justify-content:center; gap:6px; padding:14px 16px; font-size:13px; }
+.page-btn { padding:6px 12px; border:1px solid #e0e0e0; border-radius:6px; background:#fff; cursor:pointer; color:#333; font-size:12px; transition:all .15s; }
+.page-btn:hover { border-color:#4f6ef7; color:#4f6ef7; }
+.page-btn.active { background:#4f6ef7; color:#fff; border-color:#4f6ef7; }
+.page-btn:disabled { opacity:0.4; cursor:default; }
+.page-info { color:#999; font-size:12px; margin:0 8px; }
+/* 预览弹窗 */
+.modal { position:fixed; top:0; left:0; right:0; bottom:0; background:rgba(0,0,0,0.5); display:none; align-items:center; justify-content:center; z-index:1000; }
+.modal.active { display:flex; }
+.modal-box { background:#fff; border-radius:12px; max-width:90vw; max-height:85vh; overflow:hidden; box-shadow:0 8px 30px rgba(0,0,0,0.15); }
+.modal-header { display:flex; align-items:center; justify-content:space-between; padding:14px 20px; border-bottom:1px solid #f0f0f0; }
+.modal-header h3 { font-size:15px; font-weight:600; }
+.modal-close { background:none; border:none; font-size:20px; cursor:pointer; color:#999; padding:0 4px; }
+.modal-close:hover { color:#333; }
+.modal-body { padding:20px; overflow:auto; max-height:calc(85vh - 56px); }
+.modal-body img { max-width:100%; display:block; }
+.modal-body pre { font-size:13px; line-height:1.6; white-space:pre-wrap; word-break:break-all; }
+/* 确认删除弹窗 */
+.delete-modal .modal-box { width:380px; }
+.delete-modal .modal-body { text-align:center; }
+.delete-modal .modal-actions { display:flex; gap:10px; justify-content:center; margin-top:16px; }
+.btn-confirm { padding:8px 24px; border:none; border-radius:6px; cursor:pointer; font-size:13px; }
+.btn-confirm-cancel { background:#f0f0f0; color:#666; }
+.btn-confirm-cancel:hover { background:#e0e0e0; }
+.btn-confirm-delete { background:#ff4d4f; color:#fff; }
+.btn-confirm-delete:hover { background:#e04345; }
+/* 文件上传中进度 */
+.upload-progress { display:none; align-items:center; gap:10px; padding:12px 16px; background:#f8f9ff; border-radius:8px; margin-bottom:12px; font-size:13px; color:#4f6ef7; }
+.upload-progress.active { display:flex; }
+.upload-progress .spinner { width:16px; height:16px; border:2px solid #e0e0e0; border-top-color:#4f6ef7; border-radius:50%; animation:spin .6s linear infinite; }
+@keyframes spin { to { transform:rotate(360deg); } }
+/* Toast 提示 */
+.toast { position:fixed; bottom:30px; left:50%; transform:translateX(-50%); background:#333; color:#fff; padding:10px 24px; border-radius:8px; font-size:13px; opacity:0; transition:opacity .3s; z-index:2000; pointer-events:none; }
+.toast.show { opacity:1; }
+.message-widget { position:fixed; left:16px; bottom:16px; z-index:900; display:flex; flex-direction:column-reverse; align-items:flex-start; gap:9px; }
+.message-widget[hidden] { display:none; }
+.message-button { border:0; border-radius:999px; padding:10px 15px; background:#3158db; color:#fff; box-shadow:0 3px 12px #25395b33; font:inherit; font-size:13px; cursor:pointer; }
+.message-button:hover { background:#2649c2; }
+.message-badge { margin-left:6px; padding:2px 6px; border-radius:999px; background:#fff; color:#3158db; font-size:10px; }
+.message-panel { width:min(340px,calc(100vw - 32px)); max-height:60vh; overflow:auto; padding:14px; border:1px solid #e1e5ee; border-radius:12px; background:#fff; box-shadow:0 8px 30px #18253a2b; }
+.message-panel[hidden] { display:none; }
+.message-panel-header { display:flex; align-items:center; justify-content:space-between; gap:12px; padding-bottom:9px; border-bottom:1px solid #edf0f5; }
+.message-panel-header strong { font-size:13px; }
+.message-close { border:0; background:transparent; color:#7b8290; font-size:20px; cursor:pointer; }
+.message-panel h3 { margin-top:12px; font-size:16px; color:#26354d; }
+.message-panel-content { margin-top:8px; color:#4b5566; font-size:13px; line-height:1.65; white-space:pre-wrap; overflow-wrap:anywhere; }
+.message-panel-meta { margin-top:10px; color:#9299a6; font-size:11px; }
+.message-panel-actions { display:flex; gap:8px; margin-top:12px; }
+.message-panel-actions button { padding:6px 10px; border:1px solid #dce2ec; border-radius:6px; background:#fff; color:#3158db; font-size:12px; cursor:pointer; }
+.announcement-edit-input { width:100%; padding:9px 10px; border:1px solid #ddd; border-radius:7px; font:inherit; }
+.announcement-edit-content { min-height:160px; resize:vertical; }
+.share-modal-box { width:min(520px,90vw); }
+.share-file-name { margin-bottom:16px; color:#596579; font-size:13px; overflow-wrap:anywhere; }
+.share-expiry-input { width:100%; padding:9px 10px; border:1px solid #dce1e9; border-radius:7px; font:inherit; }
+.share-result { margin-top:14px; padding:14px; border:1px solid #dce7dc; border-radius:9px; background:#f7fbf7; }
+.share-result[hidden] { display:none; }
+.share-result label { display:block; margin:10px 0 5px; color:#647064; font-size:12px; }
+.share-value-row { display:flex; gap:8px; }
+.share-value-row input { flex:1; min-width:0; padding:8px 9px; border:1px solid #dce1e9; border-radius:6px; background:#fff; font:inherit; font-size:13px; }
+.share-value-row button { padding:7px 10px; border:1px solid #d7dce8; border-radius:6px; background:#fff; color:#3158db; cursor:pointer; white-space:nowrap; }
+.share-expiry { margin-top:10px; color:#748078; font-size:12px; }
+.share-result-actions { display:flex; justify-content:flex-end; margin-top:12px; }
+.share-error { min-height:20px; margin-top:8px; color:#d4380d; font-size:13px; }
+.audit-modal-box { width:min(1040px,94vw); }
+.audit-header-tools { display:flex; align-items:center; gap:8px; }
+.audit-refresh { padding:6px 10px; border:1px solid #dce2ec; border-radius:6px; background:#fff; color:#3158db; cursor:pointer; }
+.audit-description { margin-bottom:12px; color:#687184; font-size:12px; }
+.audit-table { max-height:58vh; overflow:auto; border:1px solid #e8ebf0; border-radius:8px; }
+.audit-row { display:grid; grid-template-columns:150px 110px 130px minmax(180px,1fr) 125px; gap:10px; align-items:start; padding:9px 10px; border-bottom:1px solid #eef0f4; color:#475164; font-size:12px; line-height:1.5; }
+.audit-row:last-child { border-bottom:0; }
+.audit-row span { min-width:0; overflow-wrap:anywhere; }
+.audit-heading { position:sticky; top:0; z-index:1; background:#f7f8fb; color:#687184; font-weight:600; }
+.audit-message { min-height:20px; margin-top:8px; color:#687184; font-size:12px; }
+.audit-message.error { color:#d4380d; }
+@media (max-width:700px) {
+  .audit-heading { display:none; }
+  .audit-row { grid-template-columns:1fr; gap:3px; }
+  .audit-row span:first-child { color:#687184; }
+  .audit-row span:nth-child(n+2)::before { margin-right:5px; color:#9299a6; }
+  .audit-row span:nth-child(2)::before { content:'账号：'; }
+  .audit-row span:nth-child(3)::before { content:'操作：'; }
+  .audit-row span:nth-child(4)::before { content:'详情：'; }
+  .audit-row span:nth-child(5)::before { content:'来源 IP：'; }
+}
+@media (max-width:900px) {
+  .header { flex-wrap:wrap; }
+  .header-right { width:100%; flex-wrap:wrap; gap:8px; }
+  .header-search { margin-left:auto; }
+}
+@media (max-width:640px) {
+  .header { padding:10px 12px; }
+  .header-search { flex:1 1 100%; order:-1; }
+  .header-search input { flex:1; width:auto; }
+  .container { padding:12px 8px; }
+  .scope-bar { flex-wrap:wrap; }
+  .quota-usage { width:100%; margin-left:0; }
+  .file-header { padding:10px 12px; }
+  .file-item { padding:10px 12px; }
+  .btn-action { padding:4px 10px; font-size:11px; }
+}
+</style>
+</head>
+<body>
+<div class="header">
+  <h1><span>📁</span>团队云盘</h1>
+  <div class="header-right">
+    <span style="font-size:12px;color:#666;" id="currentUser"></span>
+    <button class="btn-manage" onclick="openPasswordModal()">修改密码</button>
+    <button class="btn-manage" id="manageUsersButton" style="display:none" onclick="openMembers()">成员管理</button>
+    <button class="btn-manage" id="systemLogsButton" style="display:none" onclick="openAuditModal()">系统日志</button>
+    <span style="font-size:12px;color:#999;" id="fileCount" role="status" aria-live="polite"></span>
+    <form class="header-search" onsubmit="submitFileSearch(event)" role="search" aria-label="搜索文件">
+      <input id="fileSearchInput" type="search" maxlength="120" placeholder="搜索当前空间文件" aria-label="搜索当前空间文件">
+      <button type="submit">搜索</button>
+      <button type="button" onclick="clearFileSearch()" aria-label="清除文件搜索">清除</button>
+    </form>
+    <button class="btn-logout" onclick="logout()">退出</button>
+  </div>
+</div>
+
+<div class="container">
+  <div class="scope-bar" role="group" aria-label="文件空间">
+    <button class="scope-btn active" id="privateScope" onclick="setScope('private')">我的文件</button>
+    <button class="scope-btn" id="teamScope" onclick="setScope('team')">团队共享</button>
+    <button class="scope-btn" id="favoritesScope" onclick="toggleFavorites()" aria-pressed="false">♡ 我的收藏</button>
+    <span class="scope-help" id="scopeHelp">只有你可以查看</span>
+    <span class="quota-usage" id="storageUsage" role="status" aria-live="polite">容量读取中…</span>
+  </div>
+  <!-- 上传区 -->
+  <div class="upload-area" id="uploadArea" onclick="document.getElementById('fileInput').click()">
+    <div class="icon">📤</div>
+    <div class="text">点击上传文件，或拖拽到此处</div>
+    <div class="hint">支持所有格式 · 单文件最大 200MB · 上传文件保存在服务器磁盘</div>
+    <input type="file" id="fileInput" style="display:none" multiple onchange="handleUpload(this.files)">
+  </div>
+
+  <!-- 上传进度 -->
+  <div class="upload-progress" id="uploadProgress">
+    <div class="spinner"></div>
+    <span id="uploadFileName">上传中...</span>
+    <span id="uploadProgressCount" style="margin-left:8px;color:#999;font-size:12px;"></span>
+  </div>
+
+  <!-- 批量操作栏 -->
+  <div class="batch-bar" id="batchBar">
+    <button class="btn-batch btn-select-all" onclick="toggleSelectAll()">☐ 全选</button>
+    <span>已选 <span class="count" id="selectedCount">0</span> 个文件</span>
+    <button class="btn-batch btn-batch-download" onclick="batchDownload()">⬇️ 批量下载</button>
+    <button class="btn-batch btn-batch-delete" onclick="showBatchDelete()">🗑️ 批量删除</button>
+  </div>
+
+  <!-- 文件列表 -->
+  <div class="file-list" id="fileList"></div>
+</div>
+
+<div id="filenameTooltip" class="filename-tooltip" role="tooltip" hidden></div>
+
+<div class="modal delete-modal" id="scopeSwitchModal" role="alertdialog" aria-modal="true" aria-labelledby="scopeSwitchTitle">
+  <div class="modal-box">
+    <div class="modal-header"><h3 id="scopeSwitchTitle">确认切换空间</h3><button class="modal-close" onclick="cancelScopeSwitch()" aria-label="关闭">✕</button></div>
+    <div class="modal-body">
+      <p id="scopeSwitchMessage" style="font-size:14px;color:#555"></p>
+      <div class="modal-actions"><button class="btn-confirm btn-confirm-cancel" onclick="cancelScopeSwitch()">留在当前空间</button><button class="btn-confirm" style="background:#4f6ef7;color:#fff" onclick="confirmScopeSwitch()">确认切换</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- 管理成员 -->
+<div class="modal" id="memberModal" role="dialog" aria-modal="true" aria-labelledby="memberTitle">
+  <div class="modal-box member-list">
+    <div class="modal-header"><h3 id="memberTitle">成员管理</h3><button class="modal-close" onclick="closeMembers()" aria-label="关闭">✕</button></div>
+    <div class="modal-body">
+      <form class="member-form" onsubmit="createMember(event)" novalidate>
+        <input id="newUsername" aria-label="新成员账号" placeholder="成员账号" autocomplete="off" maxlength="40" required>
+        <input id="newPassword" aria-label="初始密码" placeholder="初始密码（至少 8 位）" type="password" autocomplete="new-password" minlength="8" required>
+        <button type="submit">添加成员</button>
+      </form>
+      <p id="createMemberError" role="status" style="min-height:18px;color:#d4380d;font-size:12px;margin:-6px 0 8px"></p>
+      <section class="created-credentials" id="createdCredentials" aria-label="新成员登录信息" hidden>
+        <strong id="credentialHeading">请复制登录信息并发送给对方。</strong>
+        <p class="scope-help" style="margin-top:4px">密码只在这里临时显示，关闭成员管理后会清除。</p>
+        <div class="credential-line"><span class="credential-label">账号</span><code id="createdUsername"></code><button type="button" onclick="copyCreatedCredential('username')">复制账号</button></div>
+        <div class="credential-line"><label for="createdPassword">密码</label><input id="createdPassword" type="password" readonly autocomplete="off" aria-label="新成员初始密码"><button type="button" id="toggleCreatedPasswordButton" onclick="toggleCreatedPassword()">显示</button><button type="button" onclick="copyCreatedCredential('password')">复制密码</button></div>
+        <button type="button" class="copy-all-button" onclick="copyCreatedCredential('all')">复制账号和密码</button>
+      </section>
+      <p class="scope-help" style="margin-bottom:8px">最多 20 个账号。旧密码经加密保存，无法读取；只有刚创建或刚重设的密码可直接复制。关闭此窗口后临时密码会清除。</p>
+      <div id="memberRows" aria-live="polite"></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="quotaModal" role="dialog" aria-modal="true" aria-labelledby="quotaTitle">
+  <div class="modal-box" style="width:min(420px,90vw)">
+    <div class="modal-header"><h3 id="quotaTitle">设置云盘容量</h3><button class="modal-close" onclick="closeQuotaModal()" aria-label="关闭">✕</button></div>
+    <form class="modal-body" onsubmit="saveMemberQuota(event)" novalidate>
+      <p id="quotaMemberName" style="margin-bottom:12px;color:#666;font-size:13px"></p>
+      <div class="password-form-group"><label for="quotaGigabytes">容量上限（GB）</label><input id="quotaGigabytes" type="number" min="0.1" max="1024" step="0.1" required></div>
+      <p id="quotaError" role="status" style="min-height:20px;color:#d4380d;font-size:13px"></p>
+      <p class="scope-help">管理员可上调或下调容量，范围 0.1–1024 GB。调低到已用量以下时，成员需先清理文件才能继续上传。</p>
+      <div class="modal-actions" style="margin-top:12px"><button class="btn-confirm btn-confirm-cancel" type="button" onclick="closeQuotaModal()">取消</button><button class="btn-confirm btn-confirm-delete" type="submit" style="background:#4f6ef7">保存容量</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="resetPasswordModal" role="dialog" aria-modal="true" aria-labelledby="resetPasswordTitle">
+  <div class="modal-box" style="width:min(420px,90vw)">
+    <div class="modal-header"><h3 id="resetPasswordTitle">重设成员密码</h3><button class="modal-close" onclick="closeResetPassword()" aria-label="关闭">✕</button></div>
+    <form class="modal-body" onsubmit="resetMemberPassword(event)" novalidate>
+      <p id="resetMemberName" style="margin-bottom:12px;color:#666;font-size:13px"></p>
+      <div class="password-form-group"><label for="resetPasswordValue">新密码（至少 8 位）</label><input id="resetPasswordValue" type="password" autocomplete="new-password" minlength="8" required></div>
+      <p id="resetPasswordError" role="status" style="min-height:20px;color:#d4380d;font-size:13px"></p>
+      <div class="modal-actions"><button class="btn-confirm btn-confirm-cancel" type="button" onclick="closeResetPassword()">取消</button><button class="btn-confirm btn-confirm-delete" type="submit" style="background:#4f6ef7">保存并复制账号密码</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="passwordModal" role="dialog" aria-modal="true" aria-labelledby="passwordTitle">
+  <div class="modal-box" style="width:min(420px,90vw)">
+    <div class="modal-header"><h3 id="passwordTitle">修改密码</h3><button class="modal-close" onclick="closePasswordModal()" aria-label="关闭">✕</button></div>
+    <form class="modal-body" onsubmit="changePassword(event)" novalidate>
+      <div class="password-form-group"><label for="oldPassword">当前密码</label><input id="oldPassword" type="password" autocomplete="current-password" required></div>
+      <div class="password-form-group"><label for="updatedPassword">新密码（至少 8 位）</label><input id="updatedPassword" type="password" autocomplete="new-password" minlength="8" required></div>
+      <p id="passwordError" role="status" style="min-height:20px;color:#d4380d;font-size:13px"></p>
+      <div class="modal-actions"><button class="btn-confirm btn-confirm-cancel" type="button" onclick="closePasswordModal()">取消</button><button class="btn-confirm btn-confirm-delete" type="submit" style="background:#4f6ef7">保存密码</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="modal delete-modal" id="memberActionModal" role="alertdialog" aria-modal="true" aria-labelledby="memberActionTitle">
+  <div class="modal-box">
+    <div class="modal-header"><h3 id="memberActionTitle">确认成员操作</h3><button class="modal-close" onclick="closeMemberAction()" aria-label="关闭">✕</button></div>
+    <div class="modal-body">
+      <p id="memberActionText" style="font-size:14px;color:#555"></p>
+      <div class="modal-actions"><button class="btn-confirm btn-confirm-cancel" onclick="closeMemberAction()">取消</button><button class="btn-confirm btn-confirm-delete" id="memberActionConfirm" onclick="commitMemberAction()">确认停用</button></div>
+    </div>
+  </div>
+</div>
+
+<!-- 预览弹窗 -->
+<div class="modal" id="previewModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="previewTitle">预览</h3>
+      <button class="modal-close" onclick="closePreview()">✕</button>
+    </div>
+    <div class="modal-body" id="previewBody"></div>
+  </div>
+</div>
+
+<!-- 删除确认弹窗 -->
+<div class="modal delete-modal" id="deleteModal">
+  <div class="modal-box">
+    <div class="modal-header"><h3 id="deleteTitle">确认删除</h3><button class="modal-close" onclick="closeDelete()">✕</button></div>
+    <div class="modal-body">
+      <div style="font-size:40px;margin-bottom:10px;">🗑️</div>
+      <p style="font-size:14px;color:#666;" id="deleteMessage">确定要删除 <strong id="deleteFileName"></strong> 吗？</p>
+      <p style="font-size:12px;color:#999;margin-top:4px;">删除后不可恢复</p>
+      <div class="modal-actions">
+        <button class="btn-confirm btn-confirm-cancel" onclick="closeDelete()">取消</button>
+        <button class="btn-confirm btn-confirm-delete" onclick="confirmDelete()">确认删除</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- 备注弹窗 -->
+<div class="modal" id="shareModal" role="dialog" aria-modal="true" aria-labelledby="shareModalTitle">
+  <div class="modal-box share-modal-box">
+    <div class="modal-header"><h3 id="shareModalTitle">分享文件</h3><button class="modal-close" type="button" onclick="closeShareModal()" aria-label="关闭分享窗口">✕</button></div>
+    <form class="modal-body" onsubmit="createFileShare(event)">
+      <p class="share-file-name" id="shareFileName"></p>
+      <label for="shareHours" style="display:block;margin-bottom:6px;color:#555;font-size:13px;">链接有效期（小时）</label>
+      <input class="share-expiry-input" id="shareHours" type="number" min="1" max="720" step="1" value="24" required>
+      <p id="shareError" class="share-error" role="status"></p>
+      <div class="modal-actions"><button class="btn-confirm btn-confirm-cancel" type="button" onclick="closeShareModal()">关闭</button><button class="btn-confirm" type="submit" style="background:#287a44;color:#fff">生成分享链接</button></div>
+      <section class="share-result" id="shareResult" hidden aria-live="polite">
+        <strong style="font-size:13px;color:#287a44;">分享已生成</strong>
+        <label for="shareUrl">文件提取链接</label>
+        <div class="share-value-row"><input id="shareUrl" readonly><button type="button" onclick="copyShareValue('shareUrl')">复制链接</button></div>
+        <label for="shareCode">文件提取码</label>
+        <div class="share-value-row"><input id="shareCode" readonly><button type="button" onclick="copyShareValue('shareCode')">复制提取码</button></div>
+        <p class="share-expiry" id="shareExpiryText"></p>
+        <div class="share-result-actions"><button class="copy-all-button" type="button" onclick="copyShareInfo()">复制完整分享信息</button></div>
+      </section>
+    </form>
+  </div>
+</div>
+
+<div class="modal" id="auditModal" role="dialog" aria-modal="true" aria-labelledby="auditModalTitle">
+  <div class="modal-box audit-modal-box">
+    <div class="modal-header"><h3 id="auditModalTitle">系统日志</h3><div class="audit-header-tools"><button class="audit-refresh" type="button" onclick="refreshAuditLogs()">刷新</button><button class="modal-close" type="button" onclick="closeAuditModal()" aria-label="关闭系统日志">✕</button></div></div>
+    <div class="modal-body">
+      <p class="audit-description">最近的登录、文件、成员和分享操作。日志最多保留 3000 条。</p>
+      <div class="audit-table" role="table" aria-label="系统操作日志">
+        <div class="audit-row audit-heading" role="row"><span>时间</span><span>账号</span><span>操作</span><span>详情</span><span>来源 IP</span></div>
+        <div id="auditRows"></div>
+      </div>
+      <p id="auditMessage" class="audit-message" role="status"></p>
+      <div class="modal-actions"><button id="auditLoadMore" class="btn-confirm btn-confirm-cancel" type="button" onclick="loadMoreAuditLogs()" hidden>加载更早日志</button></div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="noteModal">
+  <div class="modal-box" style="max-width:480px;">
+    <div class="modal-header"><h3 id="noteTitle">备注</h3><button class="modal-close" onclick="closeNote()">✕</button></div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:#666;margin-bottom:8px;" id="noteFileName"></p>
+      <textarea id="noteInput" style="width:100%;min-height:100px;padding:10px;border:1px solid #ddd;border-radius:8px;font-size:13px;resize:vertical;outline:none;font-family:inherit;" placeholder="添加备注..."></textarea>
+      <div class="modal-actions" style="margin-top:12px;">
+        <button class="btn-confirm btn-confirm-cancel" onclick="closeNote()">取消</button>
+        <button class="btn-confirm btn-confirm-delete" style="background:#4f6ef7;" onclick="saveNote()">保存</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="modal" id="announcementEditModal" role="dialog" aria-modal="true" aria-labelledby="announcementEditTitle">
+  <div class="modal-box" style="width:min(520px,90vw)">
+    <div class="modal-header"><h3 id="announcementEditTitle">编辑团队公告</h3><button class="modal-close" onclick="closeAnnouncementEditor()" aria-label="关闭">✕</button></div>
+    <form class="modal-body" onsubmit="saveAnnouncement(event)">
+      <div class="password-form-group"><label for="announcementTitleInput">公告标题</label><input class="announcement-edit-input" id="announcementTitleInput" maxlength="80" required></div>
+      <div class="password-form-group"><label for="announcementContentInput">公告内容</label><textarea class="announcement-edit-input announcement-edit-content" id="announcementContentInput" maxlength="4000" required></textarea></div>
+      <p id="announcementEditError" role="status" style="min-height:20px;color:#d4380d;font-size:13px"></p>
+      <div class="modal-actions"><button class="btn-confirm btn-confirm-cancel" type="button" onclick="closeAnnouncementEditor()">取消</button><button class="btn-confirm" type="submit" style="background:#4f6ef7;color:#fff">保存公告</button></div>
+    </form>
+  </div>
+</div>
+
+<div class="message-widget" id="messageWidget" hidden>
+  <button class="message-button" id="messageButton" type="button" onclick="toggleMessagePanel()" aria-expanded="false" aria-controls="messagePanel">✉ 消息<span class="message-badge" id="messageBadge">公告</span></button>
+  <section class="message-panel" id="messagePanel" aria-label="团队公告" hidden>
+    <div class="message-panel-header"><strong>团队公告</strong><button class="message-close" type="button" onclick="closeMessagePanel()" aria-label="关闭消息">×</button></div>
+    <h3 id="announcementTitle">欢迎使用团队云盘</h3>
+    <p class="message-panel-content" id="announcementContent">公告加载中…</p>
+    <div class="message-panel-meta" id="announcementMeta"></div>
+    <div class="message-panel-actions"><button id="editAnnouncementButton" type="button" onclick="openAnnouncementEditor()" hidden>编辑公告</button></div>
+  </section>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const BASE = window.location.pathname.replace(/\/+$/, '').replace(/\/app$/, '') || '';
+let files = [];
+let deleteTarget = null;
+let selectedFiles = new Set();
+let isAllSelected = false;
+let currentSortBy = 'mtime';
+let currentSortOrder = 'desc';
+let currentPage = 1;
+let totalPages = 1;
+let totalFiles = 0;
+let fileSearchQuery = '';
+let favoritesOnly = false;
+let currentScope = 'private';
+let pendingScope = null;
+let currentUser = null;
+let currentAnnouncement = null;
+let previewObjectUrl = null;
+let createdCredentials = null;
+let sessionMemberPasswords = new Map();
+let shareTargetName = null;
+let auditCursor = null;
+let auditHasMore = false;
+let auditRequestSerial = 0;
+const PER_PAGE = 20;
+
+function getToken() { return localStorage.getItem('fs_token'); }
+
+function checkAuth() {
+  if (!getToken()) { location.href = BASE + '/'; return false; }
+  return true;
+}
+
+function logout() {
+  fetch(BASE + '/api/logout', { method: 'POST', headers: { 'x-auth-token': getToken() } }).catch(() => {});
+  localStorage.removeItem('fs_token');
+  location.href = BASE + '/?expired=1';
+}
+
+function submitFileSearch(event) {
+  event.preventDefault();
+  fileSearchQuery = document.getElementById('fileSearchInput').value.trim();
+  currentPage = 1;
+  selectedFiles.clear();
+  loadFiles();
+}
+function clearFileSearch() {
+  document.getElementById('fileSearchInput').value = '';
+  fileSearchQuery = '';
+  currentPage = 1;
+  selectedFiles.clear();
+  loadFiles();
+}
+
+function setScope(scope) {
+  const nextScope = scope === 'private' ? 'private' : 'team';
+  if (nextScope === currentScope) {
+    if (favoritesOnly) {
+      favoritesOnly = false;
+      updateViewMode();
+      currentPage = 1;
+      selectedFiles.clear();
+      loadFiles();
+    }
+    return;
+  }
+  pendingScope = nextScope;
+  const label = nextScope === 'private' ? '我的文件' : '团队共享';
+  document.getElementById('scopeSwitchMessage').textContent = `要切换到“${label}”吗？当前空间的文件列表和上传位置都会随之切换。`;
+  document.getElementById('scopeSwitchModal').classList.add('active');
+}
+function cancelScopeSwitch() {
+  pendingScope = null;
+  document.getElementById('scopeSwitchModal').classList.remove('active');
+}
+function confirmScopeSwitch() {
+  if (!pendingScope) return;
+  currentScope = pendingScope;
+  favoritesOnly = false;
+  cancelScopeSwitch();
+  document.getElementById('teamScope').classList.toggle('active', currentScope === 'team');
+  document.getElementById('privateScope').classList.toggle('active', currentScope === 'private');
+  updateViewMode();
+  currentPage = 1;
+  selectedFiles.clear();
+  loadFiles();
+}
+function toggleFavorites() {
+  favoritesOnly = !favoritesOnly;
+  updateViewMode();
+  currentPage = 1;
+  selectedFiles.clear();
+  loadFiles();
+}
+function updateViewMode() {
+  const favoritesButton = document.getElementById('favoritesScope');
+  favoritesButton.classList.toggle('active', favoritesOnly);
+  favoritesButton.setAttribute('aria-pressed', String(favoritesOnly));
+  favoritesButton.textContent = favoritesOnly ? '♥ 我的收藏' : '♡ 我的收藏';
+  document.getElementById('scopeHelp').textContent = favoritesOnly
+    ? '显示你收藏的个人文件和团队共享文件'
+    : currentScope === 'team' ? '团队成员可查看；删除和备注仅限上传者或管理员' : '只有你可以查看';
+  document.getElementById('fileSearchInput').placeholder = favoritesOnly ? '搜索我的收藏' : '搜索当前空间文件';
+  document.getElementById('uploadArea').style.display = favoritesOnly ? 'none' : '';
+}
+
+function loadMe() {
+  fetch(BASE + '/api/me', { headers: { 'x-auth-token': getToken() } }).then(r => r.json()).then(user => {
+    if (!user.id) return logout();
+    const previousUser = currentUser;
+    currentUser = user;
+    document.getElementById('currentUser').textContent = user.username + (user.isSuperAdmin ? ' · 超级管理员' : user.role === 'admin' ? ' · 管理员' : '');
+    document.getElementById('manageUsersButton').style.display = user.role === 'admin' ? '' : 'none';
+    document.getElementById('systemLogsButton').style.display = user.isSuperAdmin ? '' : 'none';
+    document.getElementById('editAnnouncementButton').hidden = user.role !== 'admin';
+    const percent = user.quotaBytes ? user.usedBytes / user.quotaBytes : 0;
+    const usage = document.getElementById('storageUsage');
+    usage.className = 'quota-usage' + (percent >= 1 ? ' full' : percent >= 0.8 ? ' warn' : '');
+    usage.textContent = `账号用量 ${formatQuotaBytes(user.usedBytes)} / ${formatQuotaBytes(user.quotaBytes)}${percent >= 1 ? ' · 已超额，请清理文件' : percent >= 0.8 ? ' · 空间快满了' : ''}`;
+    const previousPercent = previousUser?.id === user.id && previousUser.quotaBytes ? previousUser.usedBytes / previousUser.quotaBytes : 0;
+    if (previousPercent < 0.8 && percent >= 0.8) showToast('云盘空间已使用 80%，快满了');
+  }).catch(() => logout());
+}
+function renderAnnouncement() {
+  if (!currentAnnouncement) return;
+  document.getElementById('announcementTitle').textContent = currentAnnouncement.title;
+  document.getElementById('announcementContent').textContent = currentAnnouncement.content;
+  document.getElementById('announcementMeta').textContent = currentAnnouncement.updatedAt
+    ? `更新于 ${new Date(currentAnnouncement.updatedAt).toLocaleString('zh-CN')}${currentAnnouncement.updatedBy ? ' · ' + currentAnnouncement.updatedBy : ''}`
+    : '';
+}
+function loadAnnouncement(autoPopup = false) {
+  fetch(BASE + '/api/announcement', { headers: { 'x-auth-token': getToken() } })
+    .then(r => r.json().then(data => ({ ok: r.ok, data }))).then(({ ok, data }) => {
+      if (!ok || !data.announcement) return;
+      currentAnnouncement = data.announcement;
+      renderAnnouncement();
+      document.getElementById('messageWidget').hidden = false;
+      if (autoPopup) {
+        const token = getToken();
+        let alreadyShown = false;
+        try { alreadyShown = sessionStorage.getItem('fs_announcement_shown_token') === token; } catch {}
+        if (!alreadyShown) {
+          try { sessionStorage.setItem('fs_announcement_shown_token', token); } catch {}
+          openMessagePanel();
+        }
+      }
+    }).catch(() => {});
+}
+function openMessagePanel() {
+  document.getElementById('messagePanel').hidden = false;
+  document.getElementById('messageButton').setAttribute('aria-expanded', 'true');
+}
+function closeMessagePanel() {
+  document.getElementById('messagePanel').hidden = true;
+  document.getElementById('messageButton').setAttribute('aria-expanded', 'false');
+}
+function toggleMessagePanel() {
+  const panel = document.getElementById('messagePanel');
+  if (panel.hidden) {
+    openMessagePanel();
+    loadAnnouncement(false);
+  } else closeMessagePanel();
+}
+function openAnnouncementEditor() {
+  if (currentUser?.role !== 'admin') return;
+  document.getElementById('announcementTitleInput').value = currentAnnouncement?.title || '';
+  document.getElementById('announcementContentInput').value = currentAnnouncement?.content || '';
+  document.getElementById('announcementEditError').textContent = '';
+  document.getElementById('announcementEditModal').classList.add('active');
+}
+function closeAnnouncementEditor() {
+  document.getElementById('announcementEditModal').classList.remove('active');
+}
+function saveAnnouncement(event) {
+  event.preventDefault();
+  if (currentUser?.role !== 'admin') return;
+  const title = document.getElementById('announcementTitleInput').value.trim();
+  const content = document.getElementById('announcementContentInput').value.trim();
+  const error = document.getElementById('announcementEditError');
+  if (!title || title.length > 80) { error.textContent = '公告标题需为 1–80 个字符'; return; }
+  if (!content || content.length > 4000) { error.textContent = '公告内容需为 1–4000 个字符'; return; }
+  fetch(BASE + '/api/announcement', {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json', 'x-auth-token': getToken() },
+    body: JSON.stringify({ title, content }),
+  }).then(r => r.json().then(data => ({ ok: r.ok, data }))).then(({ ok, data }) => {
+    if (!ok) { error.textContent = data.error || '保存公告失败'; return; }
+    currentAnnouncement = data.announcement;
+    renderAnnouncement();
+    closeAnnouncementEditor();
+    openMessagePanel();
+    showToast('公告已更新');
+  }).catch(() => { error.textContent = '网络错误，请重试'; });
+}
+function formatQuotaBytes(bytes) {
+  if (bytes >= 1024 ** 3) return (bytes / (1024 ** 3)).toFixed(bytes % (1024 ** 3) === 0 ? 0 : 1) + ' GB';
+  if (bytes >= 1024 ** 2) return (bytes / (1024 ** 2)).toFixed(0) + ' MB';
+  return (bytes / 1024).toFixed(0) + ' KB';
+}
+function openPasswordModal() { document.getElementById('passwordModal').classList.add('active'); document.getElementById('passwordError').textContent = ''; }
+function closePasswordModal() { document.getElementById('passwordModal').classList.remove('active'); document.getElementById('oldPassword').value = ''; document.getElementById('updatedPassword').value = ''; }
+function changePassword(event) {
+  event.preventDefault();
+  const oldPassword = document.getElementById('oldPassword').value;
+  const newPassword = document.getElementById('updatedPassword').value;
+  const error = document.getElementById('passwordError');
+  if (newPassword.length < 8) { error.textContent = '新密码至少需要 8 位'; return; }
+  fetch(BASE + '/api/change-password', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': getToken() }, body: JSON.stringify({ oldPassword, newPassword }) })
+    .then(r => r.json().then(data => ({ ok: r.ok, data }))).then(({ ok, data }) => {
+      if (!ok) { error.textContent = data.error || '修改失败'; return; }
+      localStorage.setItem('fs_token', data.token);
+      closePasswordModal(); showToast('密码已修改');
+    }).catch(() => { error.textContent = '网络错误，请重试'; });
+}
+
+function openMembers() { document.getElementById('memberModal').classList.add('active'); loadMembers(); }
+function closeMembers() {
+  document.getElementById('memberModal').classList.remove('active');
+  createdCredentials = null;
+  sessionMemberPasswords.clear();
+  document.getElementById('createdCredentials').hidden = true;
+  document.getElementById('createdUsername').textContent = '';
+  document.getElementById('createdPassword').value = '';
+  document.getElementById('createdPassword').type = 'password';
+  document.getElementById('toggleCreatedPasswordButton').textContent = '显示';
+}
+function loadMembers() {
+  fetch(BASE + '/api/users', { headers: { 'x-auth-token': getToken() } }).then(r => r.json()).then(data => {
+    if (!data.users) return showToast(data.error || '成员列表加载失败');
+    document.getElementById('memberRows').innerHTML = data.users.map(user => {
+      const roleLabel = user.isSuperAdmin ? ' · 超级管理员' : user.role === 'admin' ? ' · 管理员' : '';
+      const roleAction = currentUser.isSuperAdmin && user.id !== currentUser.id && !user.isSuperAdmin
+        ? `<button class="btn-action btn-download" onclick="askMemberRoleChange('${user.id}','${user.role === 'admin' ? 'member' : 'admin'}',${inlineArg(user.username)})">${user.role === 'admin' ? '取消管理员' : '设为管理员'}</button>`
+        : '';
+      const protectedRoot = user.isSuperAdmin && !currentUser.isSuperAdmin;
+      const passwordAvailable = sessionMemberPasswords.has(user.username);
+      const hideCredentialAction = protectedRoot || (user.id === currentUser.id && !passwordAvailable);
+      const credentialLabel = passwordAvailable ? '复制账号和密码' : '重设密码并复制';
+      const credentialAction = hideCredentialAction ? '' : `<button class="btn-action btn-download" onclick="copyMemberCredentials('${user.id}',${inlineArg(user.username)})">${credentialLabel}</button>`;
+      const otherActions = user.id === currentUser.id
+        ? '<span class="member-status">当前账号</span>'
+        : protectedRoot
+        ? '<span class="member-status">超级管理员账号受保护</span>'
+        : `${roleAction}<button class="btn-action btn-download" onclick="openResetPassword('${user.id}',${inlineArg(user.username)})">重设密码</button><button class="btn-action ${user.active ? 'btn-delete' : 'btn-download'}" onclick="askMemberAction('${user.id}',${!user.active},${inlineArg(user.username)})">${user.active ? '停用' : '启用'}</button>`;
+      return `<div class="member-row">
+      <div><strong>${escapeHtml(user.username)}</strong> <span class="member-status${user.active ? '' : ' off'}">${user.active ? '已启用' : '已停用'}${roleLabel}</span><span class="member-quota">已用 ${formatQuotaBytes(user.usedBytes)} / ${formatQuotaBytes(user.quotaBytes)}</span></div>
+      <div class="member-actions">${credentialAction}<button class="btn-action btn-download" onclick="openQuotaModal('${user.id}','${escapeHtml(user.username)}',${user.quotaBytes})">设置容量</button>${otherActions}</div>
+    </div>`;
+    }).join('');
+  }).catch(() => showToast('成员列表加载失败'));
+}
+let quotaTargetId = null;
+function openQuotaModal(id, username, quotaBytes) {
+  quotaTargetId = id;
+  document.getElementById('quotaMemberName').textContent = '成员：' + username;
+  document.getElementById('quotaGigabytes').value = (quotaBytes / (1024 ** 3)).toFixed(1).replace(/\.0$/, '');
+  document.getElementById('quotaError').textContent = '';
+  document.getElementById('quotaModal').classList.add('active');
+}
+function closeQuotaModal() { quotaTargetId = null; document.getElementById('quotaModal').classList.remove('active'); }
+function saveMemberQuota(event) {
+  event.preventDefault();
+  if (!quotaTargetId) return;
+  const gigabytes = Number(document.getElementById('quotaGigabytes').value);
+  const error = document.getElementById('quotaError');
+  if (!Number.isFinite(gigabytes) || gigabytes < 0.1 || gigabytes > 1024) { error.textContent = '容量需在 0.1–1024 GB 之间'; return; }
+  fetch(BASE + '/api/users/' + encodeURIComponent(quotaTargetId), { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-auth-token': getToken() }, body: JSON.stringify({ quotaBytes: Math.round(gigabytes * (1024 ** 3)) }) })
+    .then(r => r.json().then(data => ({ ok: r.ok, data }))).then(({ ok, data }) => {
+      if (!ok) { error.textContent = data.error || '保存容量失败'; return; }
+      closeQuotaModal(); showToast('云盘容量已更新'); loadMembers(); loadMe();
+    }).catch(() => { error.textContent = '网络错误，请重试'; });
+}
+let resetTarget = null;
+function openResetPassword(id, username) {
+  resetTarget = { id, username };
+  document.getElementById('resetMemberName').textContent = '成员：' + username + '。旧密码无法读取；设置新密码后会自动复制完整登录信息。';
+  document.getElementById('resetPasswordValue').value = '';
+  document.getElementById('resetPasswordError').textContent = '';
+  document.getElementById('resetPasswordModal').classList.add('active');
+}
+function closeResetPassword() {
+  resetTarget = null;
+  document.getElementById('resetPasswordModal').classList.remove('active');
+  document.getElementById('resetPasswordValue').value = '';
+}
+function resetMemberPassword(event) {
+  event.preventDefault();
+  if (!resetTarget) return;
+  const password = document.getElementById('resetPasswordValue').value;
+  const error = document.getElementById('resetPasswordError');
+  if (password.length < 8 || password.length > 128) { error.textContent = '密码长度需为 8–128 位'; return; }
+  const target = resetTarget;
+  fetch(BASE + '/api/users/' + encodeURIComponent(target.id), { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-auth-token': getToken() }, body: JSON.stringify({ password }) })
+    .then(r => r.json().then(data => ({ ok: r.ok, data }))).then(({ ok, data }) => {
+      if (!ok) { error.textContent = data.error || '重设密码失败'; return; }
+      closeResetPassword();
+      createdCredentials = { username: target.username, password };
+      sessionMemberPasswords.set(target.username, password);
+      document.getElementById('credentialHeading').textContent = '密码已重设，请复制新的登录信息并发送给对方。';
+      document.getElementById('createdUsername').textContent = target.username;
+      document.getElementById('createdPassword').value = password;
+      document.getElementById('createdPassword').type = 'password';
+      document.getElementById('toggleCreatedPasswordButton').textContent = '显示';
+      document.getElementById('createdCredentials').hidden = false;
+      document.getElementById('createdCredentials').scrollIntoView({ block: 'nearest' });
+      copyText(`账号：${target.username}\n密码：${password}`, '账号和密码已复制');
+      loadMembers();
+    }).catch(() => { error.textContent = '网络错误，请重试'; });
+}
+function createMember(event) {
+  event.preventDefault();
+  const username = document.getElementById('newUsername').value.trim();
+  const password = document.getElementById('newPassword').value;
+  const error = document.getElementById('createMemberError');
+  error.textContent = '';
+  createdCredentials = null;
+  document.getElementById('createdCredentials').hidden = true;
+  document.getElementById('createdUsername').textContent = '';
+  document.getElementById('createdPassword').value = '';
+  if (password.length < 8 || password.length > 128) { error.textContent = '初始密码长度需为 8–128 位'; return; }
+  fetch(BASE + '/api/users', { method: 'POST', headers: { 'Content-Type': 'application/json', 'x-auth-token': getToken() }, body: JSON.stringify({ username, password }) })
+    .then(r => r.json().then(data => ({ ok: r.ok, data }))).then(({ ok, data }) => {
+      if (!ok) { error.textContent = data.error || '添加成员失败'; return; }
+      createdCredentials = { username, password };
+      sessionMemberPasswords.set(username, password);
+      document.getElementById('createdUsername').textContent = username;
+      document.getElementById('createdPassword').value = password;
+      document.getElementById('createdPassword').type = 'password';
+      document.getElementById('toggleCreatedPasswordButton').textContent = '显示';
+      document.getElementById('credentialHeading').textContent = '成员已创建，请复制登录信息并发送给对方。';
+      document.getElementById('createdCredentials').hidden = false;
+      document.getElementById('newUsername').value = '';
+      document.getElementById('newPassword').value = '';
+      showToast('成员已添加，可复制登录信息'); loadMembers();
+    }).catch(() => { error.textContent = '网络错误，添加失败'; });
+}
+function toggleCreatedPassword() {
+  const input = document.getElementById('createdPassword');
+  input.type = input.type === 'password' ? 'text' : 'password';
+  document.getElementById('toggleCreatedPasswordButton').textContent = input.type === 'password' ? '显示' : '隐藏';
+}
+async function copyCreatedCredential(kind) {
+  if (!createdCredentials) return;
+  const text = kind === 'username' ? createdCredentials.username : kind === 'password' ? createdCredentials.password : `账号：${createdCredentials.username}\n密码：${createdCredentials.password}`;
+  await copyText(text, kind === 'all' ? '账号和密码已复制' : (kind === 'username' ? '账号已复制' : '密码已复制'));
+}
+function copyMemberCredentials(id, username) {
+  const password = sessionMemberPasswords.get(username);
+  if (password) {
+    copyText(`账号：${username}\n密码：${password}`, '账号和密码已复制');
+    return;
+  }
+  openResetPassword(id, username);
+}
+async function copyText(text, successMessage) {
+  try {
+    let copied = false;
+    if (navigator.clipboard?.writeText) {
+      try { await navigator.clipboard.writeText(text); copied = true; } catch {}
+    }
+    if (!copied) {
+      const temporary = document.createElement('textarea');
+      temporary.value = text; temporary.setAttribute('readonly', '');
+      temporary.style.position = 'fixed'; temporary.style.opacity = '0';
+      document.body.appendChild(temporary); temporary.select();
+      copied = document.execCommand('copy'); temporary.remove();
+    }
+    if (!copied) throw new Error('clipboard unavailable');
+    showToast(successMessage);
+  } catch { showToast('复制失败，请选中内容手动复制'); }
+}
+let pendingMemberAction = null;
+function askMemberAction(id, active, username) {
+  pendingMemberAction = { id, active };
+  const action = active ? '启用' : '停用';
+  document.getElementById('memberActionTitle').textContent = action + '成员';
+  document.getElementById('memberActionText').textContent = active ? `确定启用成员“${username}”吗？` : `停用后，“${username}”将无法继续登录；其文件会保留。确定停用吗？`;
+  document.getElementById('memberActionConfirm').textContent = '确认' + action;
+  document.getElementById('memberActionModal').classList.add('active');
+}
+function askMemberRoleChange(id, role, username) {
+  pendingMemberAction = { id, role };
+  const granting = role === 'admin';
+  document.getElementById('memberActionTitle').textContent = granting ? '授予管理员权限' : '取消管理员权限';
+  document.getElementById('memberActionText').textContent = granting
+    ? `设为管理员后，“${username}”可以管理成员、调整容量并访问所有人的文件。确定授予吗？`
+    : `取消后，“${username}”将不能再管理成员或调整容量。确定取消管理员权限吗？`;
+  document.getElementById('memberActionConfirm').textContent = granting ? '确认授予' : '确认取消';
+  document.getElementById('memberActionModal').classList.add('active');
+}
+function closeMemberAction() { pendingMemberAction = null; document.getElementById('memberActionModal').classList.remove('active'); }
+function commitMemberAction() {
+  if (!pendingMemberAction) return;
+  const actionData = pendingMemberAction;
+  const { id, active, role } = actionData;
+  const action = role ? (role === 'admin' ? '授予管理员权限' : '取消管理员权限') : (active ? '启用成员' : '停用成员');
+  const update = role ? { role } : { active };
+  fetch(BASE + '/api/users/' + encodeURIComponent(id), { method: 'PATCH', headers: { 'Content-Type': 'application/json', 'x-auth-token': getToken() }, body: JSON.stringify(update) })
+    .then(r => r.json().then(data => ({ ok: r.ok, data }))).then(({ ok, data }) => {
+      closeMemberAction();
+      if (!ok) return showToast(data.error || action + '成员失败');
+      showToast(role ? (role === 'admin' ? '已设为管理员' : '已取消管理员权限') : '成员已' + (active ? '启用' : '停用'));
+      loadMembers(); loadMe();
+    }).catch(() => showToast(action + '成员失败'));
+}
+
+function loadFiles() {
+  if (!checkAuth()) return;
+  const params = new URLSearchParams({ scope: currentScope, favorites: String(favoritesOnly), sort_by: currentSortBy, sort_order: currentSortOrder, page: String(currentPage), per_page: String(PER_PAGE), q: fileSearchQuery });
+  fetch(BASE + '/api/files?' + params.toString(), { headers: { 'x-auth-token': getToken() } })
+    .then(r => r.json()).then(d => {
+      if (d.error) { if (d.error === 'unauthorized' || d.error === 'session_expired') { logout(); return; } showToast(d.error); return; }
+      files = d.files || [];
+      totalFiles = d.total || 0;
+      totalPages = d.totalPages || 1;
+      currentPage = d.page || 1;
+      renderFiles();
+    }).catch(() => showToast('加载失败'));
+}
+
+function showFilenameTooltip(event, element) {
+  if (!element || element.scrollWidth <= element.clientWidth + 1) return hideFilenameTooltip();
+  const tooltip = document.getElementById('filenameTooltip');
+  tooltip.textContent = element.textContent;
+  tooltip.hidden = false;
+  moveFilenameTooltip(event);
+}
+function moveFilenameTooltip(event) {
+  const tooltip = document.getElementById('filenameTooltip');
+  if (tooltip.hidden) return;
+  const gap = 14;
+  const rect = tooltip.getBoundingClientRect();
+  let left = event.clientX + gap;
+  let top = event.clientY + gap;
+  if (left + rect.width > window.innerWidth - 12) left = Math.max(12, event.clientX - rect.width - gap);
+  if (top + rect.height > window.innerHeight - 12) top = Math.max(12, event.clientY - rect.height - gap);
+  tooltip.style.left = left + 'px';
+  tooltip.style.top = top + 'px';
+}
+function hideFilenameTooltip() {
+  document.getElementById('filenameTooltip').hidden = true;
+}
+function renderFiles() {
+  const el = document.getElementById('fileList');
+  document.getElementById('fileCount').textContent = totalFiles > 20
+    ? ('第 ' + ((currentPage - 1) * PER_PAGE + 1) + '-' + Math.min(currentPage * PER_PAGE, totalFiles) + ' / 共 ' + totalFiles + ' 个文件')
+    : ('共 ' + totalFiles + ' 个文件');
+  if (totalFiles === 0) {
+    el.innerHTML = fileSearchQuery
+      ? `<div class="empty-state"><div class="icon">🔎</div><div class="text">没有找到“${escapeHtml(fileSearchQuery)}”</div><button class="btn-action btn-download" style="margin-top:12px" onclick="clearFileSearch()">清除搜索</button></div>`
+      : favoritesOnly
+      ? '<div class="empty-state"><div class="icon">♡</div><div class="text">还没有收藏文件，点击文件旁的空心爱心即可收藏</div></div>'
+      : '<div class="empty-state"><div class="icon">📂</div><div class="text">暂无文件，拖拽或点击上传</div></div>';
+    selectedFiles.clear();
+    updateBatchBar();
+    return;
+  }
+  const allChecked = selectedFiles.size === files.length && files.length > 0;
+  const sortArrow = (field) => {
+    if (currentSortBy !== field) return '';
+    return currentSortOrder === 'asc' ? ' ▲' : ' ▼';
+  };
+  const sortCls = (field) => 'sortable' + (currentSortBy === field ? ' active' : '');
+  el.innerHTML = `<div class="file-header">
+    <div class="col-check"><input type="checkbox" class="file-checkbox" ${allChecked ? 'checked' : ''} onchange="toggleSelectAll()"></div>
+    <div class="col-icon"></div>
+    <div class="col-name sortable" onclick="changeSort('name')">文件名<span class="sort-arrow">${sortArrow('name')}</span></div>
+    <div class="col-size sortable" onclick="changeSort('size')">大小<span class="sort-arrow">${sortArrow('size')}</span></div>
+    <div class="col-date sortable" onclick="changeSort('mtime')">修改时间<span class="sort-arrow">${sortArrow('mtime')}</span></div>
+    <div class="col-note">备注</div>
+    <div class="col-actions">操作</div>
+  </div>` +
+  files.map(f => {
+    const icon = f.type === 'image' ? '🖼️' : f.type === 'text' ? '📄' : f.type === 'document' ? '📋' : '📎';
+    const checked = selectedFiles.has(f.name) ? 'checked' : '';
+    const hasNote = f.note ? 'note-active' : '';
+    return `<div class="file-item${checked ? ' selected' : ''}">
+      <div class="col-check"><input type="checkbox" class="file-checkbox" ${checked} onchange="toggleCheck(${inlineArg(f.name)}, this.checked)"></div>
+      <span class="file-icon">${icon}</span>
+      <div class="file-info">
+        <div class="file-name" aria-label="${escapeHtml(f.name)}" onmouseenter="showFilenameTooltip(event,this)" onmousemove="moveFilenameTooltip(event)" onmouseleave="hideFilenameTooltip()">${escapeHtml(f.name)}</div>
+        <div class="file-meta">${escapeHtml(f.owner || '')}${favoritesOnly ? ` · ${f.scope === 'private' ? '我的文件' : '团队共享'}` : ''}</div>
+      </div>
+      <div class="col-size">${f.sizeText}</div>
+      <div class="col-date">${formatTime(f.mtime)}</div>
+      <div class="col-note ${hasNote}" ${f.canDelete ? `onclick="showNote(${inlineArg(f.name)}, this)"` : ''} data-note="${encodeURIComponent(f.note || '')}" title="${f.note ? escapeHtml(f.note) : (f.canDelete ? '添加备注' : '仅上传者或管理员可编辑备注')}">${f.note ? '📝' : '📄'}</div>
+      <div class="file-actions">
+        <button type="button" class="favorite-button${f.isFavorite ? ' active' : ''}" aria-label="${f.isFavorite ? '取消收藏' : '收藏文件'}" aria-pressed="${f.isFavorite ? 'true' : 'false'}" title="${f.isFavorite ? '取消收藏' : '收藏文件'}" onclick="toggleFavorite(${inlineArg(f.name)},${f.isFavorite ? 'true' : 'false'})">${f.isFavorite ? '♥' : '♡'}</button>
+        ${f.type === 'text' || f.type === 'image' ? `<button class="btn-action btn-preview" onclick="previewFile(${inlineArg(f.name)})">预览</button>` : ''}
+        <button class="btn-action btn-download" onclick="downloadFile(${inlineArg(f.name)})">下载</button>
+        <button class="btn-action btn-share" onclick="openShareModal(${inlineArg(f.name)})">分享</button>
+        ${f.canDelete ? `<button class="btn-action btn-delete" onclick="showDelete(${inlineArg(f.name)})">删除</button>` : ''}
+      </div>
+    </div>`;
+  }).join('') +
+  renderPagination();
+  updateBatchBar();
+}
+
+function toggleFavorite(name, currentlyFavorite) {
+  fetch(BASE + '/api/files/' + encodeURIComponent(name) + '/favorite', {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json', 'x-auth-token': getToken() },
+    body: JSON.stringify({ favorite: !currentlyFavorite }),
+  }).then(r => r.json().then(data => ({ ok: r.ok, data }))).then(({ ok, data }) => {
+    if (!ok) return showToast(data.error || '收藏操作失败');
+    showToast(data.isFavorite ? '已加入我的收藏' : '已取消收藏');
+    loadFiles();
+  }).catch(() => showToast('收藏操作失败，请重试'));
+}
+
+function renderPagination() {
+  if (totalPages <= 1) return '';
+  let html = '<div class="pagination">';
+  html += `<button class="page-btn" onclick="goToPage(1)" ${currentPage <= 1 ? 'disabled' : ''}>«</button>`;
+  html += `<button class="page-btn" onclick="goToPage(${currentPage - 1})" ${currentPage <= 1 ? 'disabled' : ''}>‹</button>`;
+  const start = Math.max(1, currentPage - 2);
+  const end = Math.min(totalPages, currentPage + 2);
+  if (start > 1) html += '<button class="page-btn" onclick="goToPage(1)">1</button>' + (start > 2 ? '<span class="page-info">…</span>' : '');
+  for (let i = start; i <= end; i++) {
+    html += `<button class="page-btn${i === currentPage ? ' active' : ''}" onclick="goToPage(${i})">${i}</button>`;
+  }
+  if (end < totalPages) html += (end < totalPages - 1 ? '<span class="page-info">…</span>' : '') + `<button class="page-btn" onclick="goToPage(${totalPages})">${totalPages}</button>`;
+  html += `<button class="page-btn" onclick="goToPage(${currentPage + 1})" ${currentPage >= totalPages ? 'disabled' : ''}>›</button>`;
+  html += `<button class="page-btn" onclick="goToPage(${totalPages})" ${currentPage >= totalPages ? 'disabled' : ''}>»</button>`;
+  html += '<span class="page-info">' + currentPage + '/' + totalPages + '</span>';
+  html += '</div>';
+  return html;
+}
+
+function changeSort(field) {
+  if (currentSortBy === field) {
+    currentSortOrder = currentSortOrder === 'asc' ? 'desc' : 'asc';
+  } else {
+    currentSortBy = field;
+    currentSortOrder = 'desc';
+  }
+  currentPage = 1;
+  selectedFiles.clear();
+  loadFiles();
+}
+
+function goToPage(page) {
+  if (page < 1 || page > totalPages || page === currentPage) return;
+  currentPage = page;
+  selectedFiles.clear();
+  loadFiles();
+}
+
+function handleUpload(filesList) {
+  if (!filesList || filesList.length === 0) return;
+  const total = filesList.length;
+  let done = 0, failed = [], failureMessages = [];
+  const progressEl = document.getElementById('uploadProgress');
+  const nameEl = document.getElementById('uploadFileName');
+  const countEl = document.getElementById('uploadProgressCount');
+  progressEl.classList.add('active');
+
+  function uploadNext(i) {
+    if (i >= total) {
+      progressEl.classList.remove('active');
+      document.getElementById('fileInput').value = '';
+      if (failed.length === 0) {
+        showToast('✅ 全部上传成功 (' + total + ' 个)');
+      } else {
+        showToast(failureMessages[0] || ('✅ ' + done + ' 个成功, ❌ ' + failed.length + ' 个失败'));
+      }
+      loadFiles();
+      loadMe();
+      return;
+    }
+    const file = filesList[i];
+    const form = new FormData();
+    form.append('file', file);
+    form.append('scope', currentScope);
+    nameEl.textContent = file.name;
+    countEl.textContent = (i + 1) + '/' + total;
+
+    fetch(BASE + '/api/upload', {
+      method: 'POST',
+      headers: { 'x-auth-token': getToken() },
+      body: form,
+    }).then(r => r.json()).then(d => {
+      if (d.success) { done++; }
+      else { failed.push(file.name); if (d.error) failureMessages.push(d.error); }
+      uploadNext(i + 1);
+    }).catch(() => {
+      failed.push(file.name);
+      uploadNext(i + 1);
+    });
+  }
+  uploadNext(0);
+}
+
+function downloadFile(name) {
+  fetch(BASE + '/api/download/' + encodeURIComponent(name), { headers: { 'x-auth-token': getToken() } }).then(r => {
+    if (!r.ok) throw new Error('下载失败');
+    return r.blob();
+  }).then(blob => {
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a'); a.href = url; a.download = name; a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  }).catch(() => showToast('下载失败'));
+}
+
+function previewFile(name) {
+  fetch(BASE + '/api/preview/' + encodeURIComponent(name), {
+    headers: { 'x-auth-token': getToken() }
+  }).then(r => r.json()).then(d => {
+    if (d.error) { showToast(d.error); return; }
+    document.getElementById('previewTitle').textContent = '预览: ' + name;
+    const body = document.getElementById('previewBody');
+    if (d.type === 'text') {
+      body.innerHTML = '<pre>' + escapeHtml(d.content) + '</pre>';
+    } else if (d.type === 'image') {
+      return fetch(BASE + d.url, { headers: { 'x-auth-token': getToken() } }).then(r => r.blob()).then(blob => {
+        if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+        previewObjectUrl = URL.createObjectURL(blob);
+        body.innerHTML = '<img src="' + previewObjectUrl + '" alt="' + escapeHtml(name) + '">';
+        document.getElementById('previewModal').classList.add('active');
+      });
+    } else {
+      body.innerHTML = '<p style="color:#999;text-align:center;padding:20px;">不支持预览此格式</p>';
+    }
+    document.getElementById('previewModal').classList.add('active');
+  }).catch(() => showToast('预览失败'));
+}
+
+function closePreview() {
+  document.getElementById('previewModal').classList.remove('active');
+  if (previewObjectUrl) { URL.revokeObjectURL(previewObjectUrl); previewObjectUrl = null; }
+}
+
+function showDelete(name) {
+  deleteTarget = name;
+  document.getElementById('deleteFileName').textContent = name;
+  document.getElementById('deleteModal').classList.add('active');
+}
+
+function closeDelete() {
+  deleteTarget = null;
+  document.getElementById('deleteTitle').textContent = '确认删除';
+  document.getElementById('deleteMessage').innerHTML = '确定要删除 <strong id="deleteFileName"></strong> 吗？';
+  document.getElementById('deleteModal').classList.remove('active');
+}
+
+function confirmDelete() {
+  if (!deleteTarget) return;
+  if (deleteTarget === '__batch__') {
+    const names = Array.from(selectedFiles);
+    fetch(BASE + '/api/batch-delete', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-auth-token': getToken() },
+      body: JSON.stringify({ names }),
+    }).then(r => r.json()).then(d => {
+      closeDelete();
+      selectedFiles.clear();
+      if (d.failed && d.failed.length > 0) {
+        showToast('✅ ' + d.success.length + ' 个已删除, ❌ ' + d.failed.length + ' 个失败');
+      } else {
+        showToast('🗑️ 已删除 ' + d.success.length + ' 个文件');
+      }
+      loadFiles();
+      loadMe();
+    }).catch(() => { closeDelete(); showToast('❌ 批量删除失败'); });
+    return;
+  }
+  fetch(BASE + '/api/delete/' + encodeURIComponent(deleteTarget), {
+    method: 'DELETE',
+    headers: { 'x-auth-token': getToken() }
+  }).then(r => r.json()).then(d => {
+    if (d.success) {
+      showToast('🗑️ 已删除');
+      loadFiles();
+      loadMe();
+    } else {
+      showToast('❌ ' + (d.error || '删除失败'));
+    }
+  }).catch(() => showToast('❌ 删除失败')).finally(() => closeDelete());
+}
+
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+function openShareModal(name) {
+  shareTargetName = name;
+  document.getElementById('shareFileName').textContent = '文件：' + name;
+  document.getElementById('shareHours').value = '24';
+  document.getElementById('shareError').textContent = '';
+  document.getElementById('shareResult').hidden = true;
+  document.getElementById('shareModal').classList.add('active');
+}
+function closeShareModal() {
+  shareTargetName = null;
+  document.getElementById('shareModal').classList.remove('active');
+}
+async function createFileShare(event) {
+  event.preventDefault();
+  if (!shareTargetName) return;
+  const hours = Number(document.getElementById('shareHours').value);
+  const error = document.getElementById('shareError');
+  error.textContent = '';
+  if (!Number.isSafeInteger(hours) || hours < 1 || hours > 720) { error.textContent = '有效期需为 1–720 小时'; return; }
+  const submit = event.submitter || event.currentTarget.querySelector('button[type="submit"]');
+  if (submit) { submit.disabled = true; submit.textContent = '正在生成…'; }
+  try {
+    const response = await fetch(BASE + '/api/files/' + encodeURIComponent(shareTargetName) + '/share', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'x-auth-token': getToken() },
+      body: JSON.stringify({ hours }),
+    });
+    const data = await response.json();
+    if (!response.ok) { error.textContent = data.error || '生成分享链接失败'; return; }
+    const shareUrl = new URL(BASE + '/s/' + encodeURIComponent(data.token), window.location.origin).toString();
+    document.getElementById('shareUrl').value = shareUrl;
+    document.getElementById('shareCode').value = data.code;
+    document.getElementById('shareExpiryText').textContent = '有效期至 ' + new Date(data.expiresAt).toLocaleString();
+    document.getElementById('shareResult').hidden = false;
+    showToast('分享链接已生成');
+  } catch { error.textContent = '网络错误，生成失败，请重试'; }
+  finally { if (submit) { submit.disabled = false; submit.textContent = '生成分享链接'; } }
+}
+function copyShareValue(id) {
+  const value = document.getElementById(id).value;
+  if (value) copyText(value, id === 'shareUrl' ? '提取链接已复制' : '提取码已复制');
+}
+function copyShareInfo() {
+  const url = document.getElementById('shareUrl').value;
+  const code = document.getElementById('shareCode').value;
+  const expiry = document.getElementById('shareExpiryText').textContent;
+  if (url && code) copyText(`文件：${shareTargetName || ''}\n提取链接：${url}\n提取码：${code}\n${expiry}`, '分享信息已复制');
+}
+
+function openAuditModal() {
+  document.getElementById('auditModal').classList.add('active');
+  refreshAuditLogs();
+}
+function closeAuditModal() { document.getElementById('auditModal').classList.remove('active'); }
+function refreshAuditLogs() {
+  auditCursor = null;
+  auditHasMore = false;
+  document.getElementById('auditRows').replaceChildren();
+  document.getElementById('auditMessage').textContent = '';
+  fetchAuditLogs(null, false);
+}
+function loadMoreAuditLogs() {
+  if (auditCursor !== null && auditHasMore) fetchAuditLogs(auditCursor, true);
+}
+async function fetchAuditLogs(before, append) {
+  const serial = ++auditRequestSerial;
+  const message = document.getElementById('auditMessage');
+  const moreButton = document.getElementById('auditLoadMore');
+  moreButton.disabled = true;
+  message.classList.remove('error');
+  try {
+    const params = new URLSearchParams({ limit: '100' });
+    if (before !== null) params.set('before', String(before));
+    const response = await fetch(BASE + '/api/admin/audit?' + params.toString(), { headers: { 'x-auth-token': getToken() } });
+    const data = await response.json();
+    if (!response.ok) throw new Error(data.error || '读取日志失败');
+    if (serial !== auditRequestSerial) return;
+    const rows = document.getElementById('auditRows');
+    if (!append) rows.replaceChildren();
+    const actionLabels = {
+      'login.success': '登录成功', 'login.failed': '登录失败', logout: '退出登录',
+      'password.changed': '修改密码', 'member.created': '创建成员', 'member.updated': '修改成员',
+      'announcement.updated': '更新公告', 'file.uploaded': '上传文件', 'file.downloaded': '下载文件',
+      'file.batch_downloaded': '批量下载', 'file.deleted': '删除文件', 'file.batch_deleted': '批量删除',
+      'file.favorited': '收藏文件', 'file.unfavorited': '取消收藏', 'file.note_updated': '修改备注',
+      'share.created': '创建分享', 'share.revoked': '撤销分享', 'share.downloaded': '分享下载', 'share.code_blocked': '分享提取码锁定',
+    };
+    for (const entry of data.logs || []) {
+      const row = document.createElement('div');
+      row.className = 'audit-row';
+      row.setAttribute('role', 'row');
+      const values = [new Date(entry.time).toLocaleString(), entry.actor || '访客', actionLabels[entry.action] || entry.action, entry.detail || '', entry.ip || '—'];
+      for (const value of values) {
+        const cell = document.createElement('span');
+        cell.setAttribute('role', 'cell');
+        cell.textContent = value;
+        row.appendChild(cell);
+      }
+      rows.appendChild(row);
+    }
+    if (data.logs?.length) auditCursor = data.logs[data.logs.length - 1].id;
+    auditHasMore = Boolean(data.hasMore);
+    moreButton.hidden = !auditHasMore;
+    message.textContent = data.logs?.length ? '' : (append ? '没有更早的日志' : '暂无日志记录');
+  } catch (error) {
+    if (serial === auditRequestSerial) { message.textContent = error.message || '读取系统日志失败'; message.classList.add('error'); }
+  } finally {
+    if (serial === auditRequestSerial) moreButton.disabled = false;
+  }
+}
+
+// ─── 批量选择 ───
+function toggleCheck(name, checked) {
+  if (checked) { selectedFiles.add(name); }
+  else { selectedFiles.delete(name); }
+  renderFiles();
+}
+
+function toggleSelectAll() {
+  isAllSelected = !isAllSelected;
+  selectedFiles.clear();
+  if (isAllSelected) {
+    files.forEach(f => selectedFiles.add(f.name));
+  }
+  renderFiles();
+}
+
+function updateBatchBar() {
+  const bar = document.getElementById('batchBar');
+  const count = selectedFiles.size;
+  document.getElementById('selectedCount').textContent = count;
+  const btn = document.querySelector('.btn-select-all');
+  if (btn) {
+    btn.textContent = (count === files.length && files.length > 0) ? '☑ 取消全选' : '☐ 全选';
+  }
+  const deleteButton = document.querySelector('.btn-batch-delete');
+  if (deleteButton) deleteButton.disabled = !Array.from(selectedFiles).some(name => files.some(file => file.name === name && file.canDelete));
+  if (count > 0) { bar.classList.add('active'); }
+  else { bar.classList.remove('active'); }
+  isAllSelected = (count === files.length && files.length > 0);
+}
+
+function showBatchDelete() {
+  if (selectedFiles.size === 0) return;
+  document.getElementById('deleteTitle').textContent = '批量删除';
+  document.getElementById('deleteMessage').innerHTML = '确定要删除选中的 <strong>' + selectedFiles.size + '</strong> 个文件吗？';
+  deleteTarget = '__batch__';
+  document.getElementById('deleteModal').classList.add('active');
+}
+
+function batchDownload() {
+  if (selectedFiles.size === 0) { showToast('请先选择文件'); return; }
+  const names = Array.from(selectedFiles);
+  fetch(BASE + '/api/batch-download', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-auth-token': getToken() },
+    body: JSON.stringify({ names }),
+  }).then(r => {
+    if (!r.ok) { showToast('❌ 批量下载失败'); return; }
+    return r.blob();
+  }).then(blob => {
+    if (!blob) return;
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '批量下载_' + new Date().toISOString().slice(0, 10) + '.zip';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast('⬇️ 已下载 ' + selectedFiles.size + ' 个文件');
+  }).catch(() => showToast('❌ 批量下载失败'));
+}
+
+// ─── 备注 ───
+let noteTarget = null;
+
+function showNote(name, el) {
+  noteTarget = name;
+  document.getElementById('noteTitle').textContent = '备注';
+  document.getElementById('noteFileName').textContent = '📄 ' + name;
+  const noteText = decodeURIComponent(el.getAttribute('data-note') || '');
+  document.getElementById('noteInput').value = noteText;
+  document.getElementById('noteModal').classList.add('active');
+}
+
+function closeNote() {
+  noteTarget = null;
+  document.getElementById('noteModal').classList.remove('active');
+}
+
+function saveNote() {
+  if (!noteTarget) return;
+  const note = document.getElementById('noteInput').value.trim();
+  fetch(BASE + '/api/notes/' + encodeURIComponent(noteTarget), {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', 'x-auth-token': getToken() },
+    body: JSON.stringify({ note }),
+  }).then(r => r.json()).then(d => {
+    if (d.success) {
+      closeNote();
+      showToast(note ? '✅ 备注已保存' : '🗑️ 备注已删除');
+      loadFiles();
+    } else {
+      showToast('❌ 保存失败');
+    }
+  }).catch(() => showToast('❌ 保存失败'));
+}
+
+function escapeHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function inlineArg(s) { return JSON.stringify(String(s)).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;'); }
+
+function formatTime(ts) {
+  const d = new Date(ts);
+  const pad = n => String(n).padStart(2, '0');
+  return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + ' ' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+}
+
+// ─── 拖拽上传 ───
+const uploadArea = document.getElementById('uploadArea');
+uploadArea.addEventListener('dragover', e => { e.preventDefault(); uploadArea.classList.add('dragover'); });
+uploadArea.addEventListener('dragleave', () => uploadArea.classList.remove('dragover'));
+uploadArea.addEventListener('drop', e => {
+  e.preventDefault();
+  uploadArea.classList.remove('dragover');
+  if (e.dataTransfer.files.length > 0) handleUpload(e.dataTransfer.files);
+});
+
+// ─── 初始化 ───
+checkAuth();
+loadMe();
+loadFiles();
+loadAnnouncement(true);
+</script>
+</body>
+</html>

@@ -1,0 +1,155 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>登录 - 团队云盘</title>
+<style>
+* { margin:0; padding:0; box-sizing:border-box; }
+body { font-family: -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif; background: #f0f2f5; display:flex; align-items:center; justify-content:center; min-height:100vh; }
+.login-box { background:#fff; padding:40px; border-radius:12px; box-shadow:0 2px 12px rgba(0,0,0,0.08); width:360px; }
+.login-box h1 { text-align:center; font-size:22px; color:#1a1a1a; margin-bottom:28px; }
+.login-box h1 span { font-size:28px; }
+.form-group { margin-bottom:16px; }
+.form-group label { display:block; font-size:14px; color:#666; margin-bottom:6px; }
+.form-group input { width:100%; padding:10px 14px; border:1px solid #ddd; border-radius:8px; font-size:15px; outline:none; transition:border .2s; }
+.form-group input:focus { border-color:#4f6ef7; }
+.login-btn { width:100%; padding:11px; background:#4f6ef7; color:#fff; border:none; border-radius:8px; font-size:16px; cursor:pointer; transition:background .2s; }
+.login-btn:hover { background:#3d5bd9; }
+.error { color:#e74c3c; font-size:13px; text-align:center; margin-top:10px; display:none; }
+.loading { display:none; text-align:center; margin-top:10px; color:#999; font-size:13px; }
+.remaining { font-size:12px; color:#999; text-align:center; margin-top:8px; display:none; }
+.remaining.warn { color:#e67e22; }
+.remaining.danger { color:#e74c3c; font-weight:500; }
+.captcha-row { display:grid; grid-template-columns:minmax(0,1fr) 148px; gap:8px; align-items:center; }
+.captcha-row input { min-width:0; }
+.captcha-refresh { height:50px; padding:0 6px; border:1px solid #ddd; border-radius:8px; background:#f7f8fb; color:#666; display:flex; align-items:center; justify-content:center; gap:5px; cursor:pointer; }
+.captcha-refresh img { width:112px; height:42px; object-fit:contain; }
+.captcha-refresh span { font-size:11px; white-space:nowrap; }
+.captcha-refresh:focus-visible { outline:2px solid #3158db; outline-offset:2px; }
+.ban-overlay { display:none; text-align:center; padding:20px 0; }
+.ban-overlay .icon { font-size:48px; margin-bottom:12px; }
+.ban-overlay p { font-size:14px; color:#e74c3c; line-height:1.6; }
+.ban-overlay .hint { font-size:12px; color:#999; margin-top:12px; }
+.login-form { display:block; }
+</style>
+</head>
+<body>
+<div class="login-box" id="loginBox">
+  <h1><span>📁</span><br>团队云盘</h1>
+  <form class="login-form" id="loginForm" novalidate onsubmit="event.preventDefault();login()">
+  <div class="form-group">
+    <label for="username">账号</label>
+    <input type="text" id="username" placeholder="请输入账号" autocomplete="username" maxlength="40">
+  </div>
+  <div class="form-group">
+    <label for="password">密码</label>
+    <input type="password" id="password" placeholder="请输入密码" autocomplete="current-password">
+  </div>
+  <div class="form-group">
+    <label for="captcha">图形验证码（不区分大小写）</label>
+    <div class="captcha-row">
+      <input type="text" id="captcha" placeholder="输入图中 5 位字符" autocomplete="off" autocapitalize="characters" maxlength="5" aria-describedby="captchaHint">
+      <button type="button" class="captcha-refresh" onclick="refreshCaptcha()" aria-label="刷新图形验证码">
+        <img id="captchaImage" alt="图形验证码，点击刷新">
+        <span aria-hidden="true">换一张</span>
+      </button>
+    </div>
+    <input type="hidden" id="captchaId">
+    <span id="captchaHint" class="remaining" style="display:block;text-align:left">验证码 2 分钟内有效，提交后即失效。</span>
+  </div>
+  <button class="login-btn" type="submit">登 录</button>
+  <div class="error" id="errorMsg">用户名或密码错误</div>
+  <div class="remaining" id="remainingMsg"></div>
+  <div class="loading" id="loading">登录中...</div>
+  </form>
+  <div class="ban-overlay" id="banOverlay">
+    <div class="icon">🔒</div>
+    <p>登录失败次数过多<br>该 IP 已被临时封禁</p>
+    <div class="hint">请 15 分钟后再试</div>
+  </div>
+</div>
+<script>
+const BASE = window.location.pathname.replace(/\/+$/, '') || '';
+let loginSucceeded = false;
+
+async function refreshCaptcha() {
+  const image = document.getElementById('captchaImage');
+  try {
+    const response = await fetch(BASE + '/api/captcha', { cache: 'no-store' });
+    const data = await response.json();
+    if (!response.ok || !data.id || !data.image) throw new Error(data.error || '验证码加载失败');
+    document.getElementById('captchaId').value = data.id;
+    image.src = data.image;
+    image.alt = '图形验证码，点击刷新';
+  } catch {
+    document.getElementById('captchaId').value = '';
+    image.removeAttribute('src');
+    showError('验证码加载失败，请点击图片重试');
+  }
+}
+
+function login() {
+  const username = document.getElementById('username').value.trim();
+  const password = document.getElementById('password').value;
+  const captcha = document.getElementById('captcha').value.trim();
+  const captchaId = document.getElementById('captchaId').value;
+  if (!username || !password) { showError('请输入用户名和密码'); return; }
+  if (!captchaId || captcha.length !== 5) { showError('请输入图中 5 位验证码'); return; }
+  document.getElementById('loading').style.display = 'block';
+  document.getElementById('errorMsg').style.display = 'none';
+  document.querySelector('.login-btn').disabled = true;
+  fetch(BASE + '/api/login', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ username, password, captchaId, captcha }),
+  }).then(r => r.json()).then(d => {
+    if (d.token) {
+      loginSucceeded = true;
+      localStorage.setItem('fs_token', d.token);
+      location.href = BASE + '/app';
+    } else if (d.banned) {
+      showBanned();
+    } else {
+      showError(d.error || '登录失败');
+      if (d.remaining !== undefined) showRemaining(d.remaining);
+    }
+  }).catch(() => showError('网络错误')).finally(() => {
+    document.getElementById('loading').style.display = 'none';
+    document.querySelector('.login-btn').disabled = false;
+    if (!loginSucceeded) {
+      document.getElementById('captcha').value = '';
+      refreshCaptcha();
+    }
+  });
+}
+function showError(msg) {
+  const el = document.getElementById('errorMsg');
+  el.textContent = msg;
+  el.style.display = 'block';
+}
+function showRemaining(n) {
+  const el = document.getElementById('remainingMsg');
+  if (n <= 0) return showBanned();
+  el.textContent = n === 1 ? '⚠️ 再输错 1 次今日将封禁' : '剩余尝试次数: ' + n + ' 次';
+  el.className = 'remaining' + (n <= 1 ? ' danger' : n <= 2 ? ' warn' : '');
+  el.style.display = 'block';
+}
+function showBanned() {
+  document.getElementById('loginForm').style.display = 'none';
+  document.getElementById('banOverlay').style.display = 'block';
+  document.getElementById('errorMsg').style.display = 'none';
+  document.getElementById('remainingMsg').style.display = 'none';
+}
+// 页面加载时检查封禁状态
+refreshCaptcha();
+fetch(BASE + '/api/login-status').then(r => r.json()).then(d => {
+  if (d.banned) showBanned();
+});
+// 检查是否有 session 过期提示
+if (location.search.includes('expired=1')) {
+  showError('⏰ 登录已过期，请重新登录');
+}
+</script>
+</body>
+</html>
